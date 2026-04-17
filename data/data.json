@@ -1,0 +1,74 @@
+[
+  {
+    "authors": "Person1",
+    "year": 2026,
+    "type": "RESEARCH",
+    "id": 1776244688158,
+    "title": "test",
+    "url": "www.example.com",
+    "status": "APPROVED",
+    "viewCount": 1,
+    "flagCount": 1,
+    "createdBy": "Public User"
+  },
+  {
+    "authors": "Person1, Person2",
+    "year": 2025,
+    "type": "RESEARCH",
+    "id": 1776247313841,
+    "title": "ResearchTest",
+    "url": "www.example.com",
+    "status": "PENDING",
+    "viewCount": 0,
+    "flagCount": 0,
+    "createdBy": "Public User"
+  },
+  {
+    "org": "google",
+    "audience": "everyone",
+    "type": "PUBLIC",
+    "id": 1776247393876,
+    "title": "TestPublic",
+    "url": "www.google.com",
+    "status": "ARCHIVED",
+    "viewCount": 0,
+    "flagCount": 0,
+    "createdBy": "Moderator"
+  },
+  {
+    "authors": "Person3",
+    "year": 2020,
+    "type": "RESEARCH",
+    "id": 1776247509546,
+    "title": "testResearch2",
+    "url": "www.org.org",
+    "status": "APPROVED",
+    "viewCount": 1,
+    "flagCount": 0,
+    "createdBy": "Administrator"
+  },
+  {
+    "authors": "test",
+    "year": 2000,
+    "type": "RESEARCH",
+    "id": 627185331,
+    "title": "test",
+    "url": "test",
+    "status": "APPROVED",
+    "viewCount": 1,
+    "flagCount": 0,
+    "createdBy": "Moderator"
+  },
+  {
+    "authors": "Person1",
+    "year": 2026,
+    "type": "RESEARCH",
+    "id": 1792393294,
+    "title": "Thing1",
+    "url": "www.one.example.com",
+    "status": "PENDING",
+    "viewCount": 0,
+    "flagCount": 0,
+    "createdBy": "Public User"
+  }
+]

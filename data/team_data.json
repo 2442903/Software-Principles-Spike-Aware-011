@@ -1,0 +1,20 @@
+[
+  {"id":1265210847,
+   "name":"John Doe",
+   "role":"MODERATOR",
+   "email":"john.doe@example.com",
+   "active":true
+  },
+  {"id":716157500,
+   "name":"Jane Doe",
+   "role":"MODERATOR",
+   "email":"jane.doe@example.com",
+   "active":true
+  },
+  {"id":729864207,
+   "name":"Jon Smith",
+   "role":"ADMINISTRATOR",
+   "email":"jon.smith@example.com",
+   "active":true
+  }
+]
