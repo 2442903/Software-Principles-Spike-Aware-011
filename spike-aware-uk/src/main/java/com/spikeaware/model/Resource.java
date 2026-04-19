@@ -5,6 +5,7 @@ import java.util.Objects;
 /**
  * Abstract base class for resources in the Spike Aware UK Resource Aggregator.
  * Contains common fields and behaviors for all resource types.
+ * Omitted Description, driftWarning, and dateAdded fields to simplify the model and focus on core functionality.
  */
 public abstract class Resource {
     private long id;
@@ -13,7 +14,7 @@ public abstract class Resource {
     private ResourceStatus status;  // Pending, Published, Rejected, Archived
     private long viewCount;
     private long flagCount;
-    private String createdBy;  // Track who submitted the resource
+    private String createdBy;  // Track which user role submitted the resource, rather than a specific user as per feedback.
 
     /**
      * Constructor for Resource with automatic ID generation via identity hash.
@@ -139,6 +140,12 @@ public abstract class Resource {
         System.out.println("---------------------------------------------------");
     }
 
+    /**
+     * Checks if this resource is equal to another object.
+     *
+     * @param o the object to compare with
+     * @return true if the objects are equal, false otherwise
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -147,11 +154,22 @@ public abstract class Resource {
         return id == resource.id;
     }
 
+    /**
+     * Generates a hash code for the resource based on its ID.
+     *
+     * @return the hash code
+     */
     @Override
     public int hashCode() {
         return Objects.hash(id);
     }
 
+    /**
+     * Returns a string representation of the resource.
+     * Overridden by subclasses to include specific details.
+     *
+     * @return the string representation
+     */
     @Override
     public String toString() {
         return String.format("[%s] %s (ID: %d)\n", this.getType(), this.getTitle(), this.getId());

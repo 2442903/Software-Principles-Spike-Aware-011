@@ -19,9 +19,16 @@ public enum UserRole {
         return displayName;
     }
 
+    /**
+     * Deprecated method to convert string to UserRole. AuthenticationService and TeamService should be used instead for role management.
+     * 
+     * @param role
+     * @return
+     */
+    @Deprecated
     public static UserRole fromString(String role) {
         for (UserRole userRole : UserRole.values()) {
-            if (userRole.name().equalsIgnoreCase(role)) {
+            if (userRole.getDisplayName().equalsIgnoreCase(role)) {
                 return userRole;
             }
         }

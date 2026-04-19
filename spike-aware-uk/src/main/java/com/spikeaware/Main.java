@@ -1,3 +1,12 @@
+/**
+ *  Author: 2442903
+ *  Module: MOD003484 - Software Principles Project
+ *  Team: William Software House
+ *  Description: Main class for Spike Aware UK Resource Aggregator CLI application.
+ *  Handles user interaction and delegates business logic to service classes.
+ *  Version: 1.0
+ *  Date: 20-04-2026
+ */
 package com.spikeaware;
 
 import com.spikeaware.db.DatabaseManager;
@@ -17,7 +26,7 @@ import java.util.Scanner;
  * Manages user interaction through a console interface, delegating business logic to service classes.
  */
 public class Main {
-    private static DatabaseManager db;
+    private static DatabaseManager dataManger;
     private static TeamManager teamManager;
     private static AuthenticationService authService;
     private static ResourceService resourceService;
@@ -26,10 +35,10 @@ public class Main {
 
     public static void main(String[] args) {
         // Initialize services
-        db = new DatabaseManager();
+        dataManger = new DatabaseManager();
         teamManager = new TeamManager();
         authService = new AuthenticationService();
-        resourceService = new ResourceService(db, authService);
+        resourceService = new ResourceService(dataManger, authService);
         teamService = new TeamService(teamManager, authService);
         scanner = new Scanner(System.in);
         
@@ -48,7 +57,7 @@ public class Main {
                 scanner.nextLine(); // Pause before showing menu again
             }
 
-            System.out.println("\nThank you for using Spike Aware UK. Goodbye!");
+            System.out.println("\nThank you for using Spike Aware UK. GoodataMangerye!");
         } finally {
             scanner.close();
         }
@@ -83,10 +92,10 @@ public class Main {
             System.out.println("9. View Flagged Resources");
             System.out.println("10. View System Analytics");
             System.out.println("11. Edit Resource");
-            System.out.println("12. Remove Resource");
-            System.out.println("13. Archive Resource");
+            System.out.println("12. Archive Resource");           
             
             if (authService.isAdministratorMode()) {
+                System.out.println("13. Remove Resource");
                 System.out.println("14. Manage Team");
             }
         }
@@ -189,10 +198,14 @@ public class Main {
                 editResource();
                 break;
             case "12":
-                removeResource();
+                archiveResource();
                 break;
             case "13":
-                archiveResource();
+                if (authService.isAdministratorMode()) {
+                    removeResource(); 
+                } else {
+                    System.out.println("Invalid option. Please try again.");
+                }                               
                 break;
             case "14":
                 if (authService.isAdministratorMode()) {
@@ -209,6 +222,9 @@ public class Main {
 
     /**
      * Displays all published resources.
+     * Only resources with status "PUBLISHED" are shown to public users.
+     * This would be the Home Page view for the web application, 
+     * as suggested in the user flow diagram, but a lack of a GUI limits usabiltity.
      */
     private static void viewAllPublishedResources() {
         List<Resource> published = resourceService.getPublishedResources();
@@ -224,7 +240,8 @@ public class Main {
     }
 
     /**
-     * Displays all resources.
+     * Displays all resources. 
+     * Moderators and administrators can see all resources regardless of status.
      */
     private static void viewAllResources() {
         List<Resource> resources = resourceService.getAllResources();
@@ -240,7 +257,9 @@ public class Main {
     }
 
     /**
-     * Searches for resources by keyword.
+     * Searches for resources by keyword/ID.
+     * The filtering of the search results are limited by the database structure,
+     * multiple searches in one query to narrow results has not been implimented for simplicty.
      */
     private static void searchResources() {
         System.out.print("\nEnter search keyword: ");
@@ -265,6 +284,8 @@ public class Main {
 
     /**
      * Views a resource by its ID.
+     * This will also increment the view count for the resource if the user is not a moderator or administrator, as defined in the ResourceService and DatabaseManager classes.
+     * This would be the "Viewing Page" for the web application, as suggested in the user flow diagram, but a lack of a GUI limits usabiltity.
      */
     private static void viewResourceById() {
         System.out.print("\nEnter Resource ID: ");
@@ -275,7 +296,7 @@ public class Main {
             return;
         }
 
-        var resource = resourceService.getResource(id);
+        var resource = resourceService.getResource(id); // This will also increment the view count
         if (resource.isEmpty()) {
             System.out.println("Resource not found or not accessible.");
             return;
@@ -286,6 +307,9 @@ public class Main {
 
     /**
      * Adds a new research resource.
+     * Lacking a GUI, this replaces the proposed modal.
+     * There is no method implimented to check for dulicate resources,
+     * but proper error handling is included to manage cases where there are issues with resource creation.
      */
     private static void addResearchResource() {
         System.out.println("\nAdd Research Resource");
@@ -309,6 +333,9 @@ public class Main {
 
     /**
      * Adds a new public resource.
+     * Lacking a GUI, this replaces the proposed modal.
+     * There is no method implimented to check for dulicate resources,
+     * but proper error handling is included to manage cases where there are issues with resource creation.
      */
     private static void addPublicResource() {
         System.out.println("\nAdd Public Resource");
@@ -332,6 +359,9 @@ public class Main {
 
     /**
      * Flags a published resource for moderation review.
+     * No process currently exists for privilaged users to unflag resources or for moderators to "fix" the flagged issue(s),
+     * but this would allow users to report issues with resources and moderators to view them in descending order of number of flags.
+     * Object based flagging was not implimented, but the flag count is tracked for each resource and can be used to generate analytics data in a more fully featured application.
      */
     private static void flagResource() {
         System.out.print("\nEnter Resource ID to flag: ");
@@ -352,6 +382,16 @@ public class Main {
 
     /**
      * Authenticates a user as a moderator or administrator.
+     * Lacking a GUI, this replaces the proposed modal.
+     * The authentication process is simplified for this CLI application, using hardcoded passwords for demonstration purposes.
+     * In a real application, this would involve secure password handling and user management.
+     * The AuthenticationService class handles the logic for verifying credentials and managing user roles.
+     * After successful login, the menu options will change to reflect the user's new role (moderator or administrator).
+     * If login fails, the user remains in public mode with limited access to features.
+     * This method also demonstrates how role-based access control is implemented in the application, allowing for different functionalities based on user roles.
+     * The login credentials are as follows:
+     * - Moderator: mod123
+     * - Administrator: admin123
      */
     private static void login() {
         System.out.print("\nEnter password (mod123 for Moderator, admin123 for Administrator): ");
@@ -375,6 +415,15 @@ public class Main {
 
     /**
      * Moderator moderation workflow - review and approve/reject pending resources.
+     * Edit is not inclued in this workflow to simplify the menus.
+     * This would be the "View Pending Resources" for the web application, as suggested in the user flow diagram, but a lack of a GUI limits usabiltity.
+     * Moderators can view all pending resources and choose to approve, reject, or skip each one.
+     * Approved resources are published immediately, while rejected resources are removed from the pending queue.
+     * Skipped resources remain in the pending queue for later review.
+     * The data drift feature was not implimented as there is no method to check for working links other than ensuring proper format.
+     * The ResourceService class handles the business logic for approving and rejecting resources, while the DatabaseManager class manages the underlying data storage and retrieval.
+     * Proper error handling is included to manage cases where there are no pending resources or if there are issues with resource retrieval or status updates.
+     * This method also demonstrates how role-based access control is enforced, as only users with moderator or administrator roles can access this functionality.
      */
     private static void moderateResources() {
         try {
@@ -441,6 +490,14 @@ public class Main {
 
     /**
      * Views system analytics.
+     * This would be the "Analytics Dashboard" for the web application, as suggested in the user flow diagram, but a lack of a GUI limits usabiltity.
+     * Moderators and administrators can view analytics data such as total resources, published resources, flagged resources, etc.
+     * Click-through rates and data drift analytics were not implimented due to the limitations of a CLI application and the scope of this project, 
+     * but the ResourceService class includes methods to track view counts and flag counts for each resource, which could be used to generate analytics data in a more fully featured application.
+     * The ResourceService class handles the business logic for generating analytics data, while the DatabaseManager class manages the underlying data storage and retrieval.
+     * Proper error handling is included to manage cases where there are issues with data retrieval or if the user does not have permission to access analytics.
+     * This method also demonstrates how role-based access control is enforced, as only users with moderator or administrator roles can access this functionality.
+     * The analytics data is displayed in a simple text format suitable for CLI output.
      */
     private static void viewSystemAnalytics() {
         try {

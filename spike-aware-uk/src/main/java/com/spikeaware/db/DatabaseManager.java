@@ -26,6 +26,8 @@ public class DatabaseManager {
 
     /**
      * Custom deserializer for Resource polymorphism.
+     * Determines the concrete class based on the "type" field in the JSON and deserializes accordingly.
+     * This allows us to store both ResearchResource and PublicResource objects in the same JSON file while maintaining their specific fields and behaviors.
      */
     private static class ResourceDeserializer implements JsonDeserializer<Resource> {
         @Override
@@ -46,6 +48,7 @@ public class DatabaseManager {
 
     /**
      * Constructor initializes the DatabaseManager and loads existing data from file.
+     * Configures Gson with a custom deserializer to handle polymorphic Resource types (ResearchResource and PublicResource).
      */
     public DatabaseManager() {
         // Initialize data file path from configuration
@@ -67,12 +70,12 @@ public class DatabaseManager {
     private void loadFromFile() {
         try {
             if (Files.exists(dataFile)) {
-                String content = new String(Files.readAllBytes(dataFile));
+                String content = new String(Files.readAllBytes(dataFile)); // Read file content as string
                 if (!content.isEmpty()) {
                     Type listType = com.google.gson.reflect.TypeToken
                             .getParameterized(List.class, Resource.class)
-                            .getType();
-                    List<Resource> loadedResources = gson.fromJson(content, listType);
+                            .getType(); // Define the type for List<Resource> to allow Gson to deserialize correctly
+                    List<Resource> loadedResources = gson.fromJson(content, listType); // Deserialize JSON into List<Resource> using the custom deserializer to handle polymorphism
                     if (loadedResources != null) {
                         resources.addAll(loadedResources);
                     }
@@ -86,6 +89,7 @@ public class DatabaseManager {
 
     /**
      * Saves all resources to the JSON data file.
+     * Serializes the list of resources to JSON format and writes it to the file. Uses pretty printing for readability.
      */
     private void saveToFile() {
         try {
@@ -173,7 +177,7 @@ public class DatabaseManager {
                     String searchText = (r.getTitle() + " " + r.getId() + " " + r.getDetails()).toLowerCase();
                     return searchText.contains(lowerKeyword);
                 })
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()); // return matching resources as a list
     }
 
     /**
@@ -198,7 +202,7 @@ public class DatabaseManager {
                 .filter(r -> r.getId() == id)
                 .findFirst()
                 .ifPresent(r -> {
-                    r.incrementViewCount();
+                    r.incrementViewCount(); // Increment the view count using the method defined in the Resource class
                     saveToFile();
                 });
     }
@@ -323,7 +327,7 @@ public class DatabaseManager {
     }
 
     /**
-     * Generates system analytics about resources.
+     * Generates system analytics about resources in a formatted block for CLI output.
      *
      * @return a formatted string with analytics
      */

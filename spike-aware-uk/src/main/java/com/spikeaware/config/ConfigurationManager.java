@@ -13,6 +13,15 @@ public class ConfigurationManager {
     private static final String DATA_DIR = "data";
     private static final String RESOURCES_FILE = "data.json";
     private static final String TEAM_FILE = "team_data.json";
+    
+    /**
+     * Get the project root directory.
+     *
+     * @return the Path to the project root
+     */
+    public static Path getProjectRoot() {
+        return Paths.get(PROJECT_ROOT);
+    }
 
     /**
      * Get the data directory path, creating it if it doesn't exist.
@@ -20,7 +29,7 @@ public class ConfigurationManager {
      * @return the Path to the data directory
      */
     public static Path getDataDirectory() {
-        Path dataDir = Paths.get(PROJECT_ROOT).resolve(DATA_DIR);
+        Path dataDir = getProjectRoot().resolve(DATA_DIR);
         if (!Files.exists(dataDir)) {
             try {
                 Files.createDirectories(dataDir);
@@ -47,15 +56,6 @@ public class ConfigurationManager {
      */
     public static Path getTeamDataFile() {
         return getDataDirectory().resolve(TEAM_FILE);
-    }
-
-    /**
-     * Get the project root directory.
-     *
-     * @return the Path to the project root
-     */
-    public static Path getProjectRoot() {
-        return Paths.get(PROJECT_ROOT);
     }
 
     /**

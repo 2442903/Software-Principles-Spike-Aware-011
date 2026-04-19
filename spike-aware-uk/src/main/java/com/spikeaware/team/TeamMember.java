@@ -7,7 +7,7 @@ import java.util.List;
  * Represents a team member in the system with their role and contact information.
  */
 public class TeamMember {
-    private long id; // Unique identifier for each team member
+    private long id; // Unique identifier for each team member, public users are never assigned an ID as their information is never stored. As pointed out in feeback.
     private String name;
     private UserRole role;
     private String email;
@@ -76,6 +76,13 @@ public class TeamMember {
         this.active = active;
     }
 
+    /**
+     * Returns a string representation of the team member.
+     * Formats the team member's details in a tabular* format for display.
+     * *(Needs to be revised for better formatting in CLI.)
+     *
+     * @return the string representation
+     */
     @Override
     public String toString() {
         List<String> values = new ArrayList<>();

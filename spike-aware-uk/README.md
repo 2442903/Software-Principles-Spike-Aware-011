@@ -123,7 +123,7 @@ All resource data is stored in `data/data.json` in the application's working dir
 - **Moderation**: Hardcoded credentials (`mod123` for Moderator, `admin123` for Administrator)
 - **Team Management**: Administrators can manage team members stored in separate JSON file
 
-## Future Enhancements
+## Real World Improvements
 
 - [ ] Database-backed credential system with encryption
 - [ ] Concurrent access handling
@@ -138,4 +138,6 @@ This project demonstrates core object-oriented principles including:
 - Polymorphism through abstract base classes and inheritance
 - Encapsulation via role-based access control
 - Separation of concerns between model, persistence, team management, and presentation layers
-- Proper resource management with automatic serialization
+- Multiple corrections based on feedback from original pseudocode
+- Object based Flags, Activity logging, and link checking not implimented due to scope and time constraints
+- Any other deviations from design decisions, made in element 10-1, covered by in-line comments

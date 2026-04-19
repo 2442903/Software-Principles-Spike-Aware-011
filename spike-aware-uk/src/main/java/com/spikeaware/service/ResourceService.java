@@ -6,6 +6,7 @@ import com.spikeaware.model.ResourceStatus;
 import com.spikeaware.model.ResearchResource;
 import com.spikeaware.model.PublicResource;
 
+import java.time.Year;
 import java.util.List;
 import java.util.Optional;
 
@@ -97,8 +98,8 @@ public class ResourceService {
         if (authors == null || authors.isEmpty()) {
             throw new IllegalArgumentException("Authors cannot be empty");
         }
-        if (year < 1900 || year > 2100) {
-            throw new IllegalArgumentException("Year must be between 1900 and 2100");
+        if (year < 1900 || year > Year.now().getValue()) {
+            throw new IllegalArgumentException("Year must be between 1900 and " + Year.now().getValue());
         }
 
         ResearchResource resource = new ResearchResource(title, url, authors, year);
@@ -214,8 +215,8 @@ public class ResourceService {
      * @param id the resource ID
      */
     public void removeResource(long id) {
-        if (!authService.isModeratorMode()) {
-            throw new SecurityException("Only moderators can remove resources");
+        if (!authService.isAdministratorMode()) {
+            throw new SecurityException("Only administrators can remove resources");
         }
 
         Optional<Resource> resource = database.getResourceById(id);

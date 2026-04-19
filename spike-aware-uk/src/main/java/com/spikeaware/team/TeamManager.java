@@ -28,9 +28,45 @@ public class TeamManager {
     public TeamManager() {
         this.dataFile = ConfigurationManager.getTeamDataFile();
         this.teamMembers = new ArrayList<>();
-        this.gson = new GsonBuilder().create();
+        this.gson = new GsonBuilder().create(); // Create a Gson instance for JSON operations
         loadFromFile();
     }
+
+    /**
+     * Loads team members from the JSON data file.
+     */
+    private void loadFromFile() {
+        try {
+            if (Files.exists(dataFile)) {
+                String content = new String(Files.readAllBytes(dataFile)); // Read file content as string
+                if (!content.isEmpty()) {
+                    Type listType = com.google.gson.reflect.TypeToken
+                            .getParameterized(List.class, TeamMember.class)
+                            .getType(); // Define the type for List<TeamMember> to allow Gson to deserialize correctly
+                    List<TeamMember> loadedTeamMembers = gson.fromJson(content, listType); // Deserialize JSON into List<TeamMember>
+                    if (loadedTeamMembers != null) {
+                        teamMembers.addAll(loadedTeamMembers);
+                    }
+                }
+            }
+        } catch (IOException | com.google.gson.JsonSyntaxException e) {
+            System.err.println("Error loading data from file: " + e.getMessage());
+            teamMembers.clear();
+        }
+    }
+
+    /**
+     * Saves all team members to the JSON data file.
+     * Serializes the list of team members to JSON format and writes it to the file. Uses pretty printing for readability.
+     */
+    private void saveToFile() {
+        try {
+            String json = gson.toJson(teamMembers);
+            Files.write(dataFile, json.getBytes());
+        } catch (IOException e) {
+            System.err.println("Error saving data to file: " + e.getMessage());
+        }
+    }  
 
     /**
      * Adds a new team member to the database and saves to file.
@@ -107,40 +143,4 @@ public class TeamManager {
                     saveToFile();
                 });
     }
-    
-
-    /**
-     * Loads team members from the JSON data file.
-     */
-    private void loadFromFile() {
-        try {
-            if (Files.exists(dataFile)) {
-                String content = new String(Files.readAllBytes(dataFile));
-                if (!content.isEmpty()) {
-                    Type listType = com.google.gson.reflect.TypeToken
-                            .getParameterized(List.class, TeamMember.class)
-                            .getType();
-                    List<TeamMember> loadedTeamMembers = gson.fromJson(content, listType);
-                    if (loadedTeamMembers != null) {
-                        teamMembers.addAll(loadedTeamMembers);
-                    }
-                }
-            }
-        } catch (IOException | com.google.gson.JsonSyntaxException e) {
-            System.err.println("Error loading data from file: " + e.getMessage());
-            teamMembers.clear();
-        }
-    }
-
-    /**
-     * Saves all team members to the JSON data file.
-     */
-    private void saveToFile() {
-        try {
-            String json = gson.toJson(teamMembers);
-            Files.write(dataFile, json.getBytes());
-        } catch (IOException e) {
-            System.err.println("Error saving data to file: " + e.getMessage());
-        }
-    }  
 }

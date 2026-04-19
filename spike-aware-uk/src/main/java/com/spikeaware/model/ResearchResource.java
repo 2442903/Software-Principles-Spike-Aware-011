@@ -3,6 +3,7 @@ package com.spikeaware.model;
 /**
  * ResearchResource class representing academic or scientific research materials.
  * Extends the Resource base class with specific fields for authors and publication year.
+ * Omitted Keywords field and added year field to better capture the nature of research resources.
  */
 public class ResearchResource extends Resource {
     private String authors;
@@ -31,6 +32,7 @@ public class ResearchResource extends Resource {
         super();
     }
 
+    // Getters and Setters
     public String getAuthors() {
         return authors;
     }
@@ -47,16 +49,31 @@ public class ResearchResource extends Resource {
         this.year = year;
     }
 
+    /**
+     * Returns the type of the research resource.
+     *
+     * @return the type of the resource
+     */
     @Override
     public String getType() {
         return this.type.toString();
     }
 
+    /**
+     * Returns a string representation of the research resource specific details for display.
+     *
+     * @return the string representation
+     */
     @Override
     public String getDetails() {
         return "Year: " + year + " | Authors: " + authors ;
     }
 
+    /**
+     * Returns a string representation of the research resource.
+     *
+     * @return the string representation
+     */
     @Override
     public String toString() {
         return String.format("[%s] %s - %s (ID: %d)\n", this.getType(),  this.getTitle(), this.getDetails(), this.getId());
