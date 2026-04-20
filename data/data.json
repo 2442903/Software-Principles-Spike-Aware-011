@@ -43,7 +43,7 @@
     "title": "testResearch2",
     "url": "www.org.org",
     "status": "APPROVED",
-    "viewCount": 1,
+    "viewCount": 2,
     "flagCount": 0,
     "createdBy": "Administrator"
   },
@@ -66,6 +66,18 @@
     "id": 1792393294,
     "title": "Thing1",
     "url": "www.one.example.com",
+    "status": "PENDING",
+    "viewCount": 0,
+    "flagCount": 0,
+    "createdBy": "Public User"
+  },
+  {
+    "authors": "Lots of People",
+    "year": 2024,
+    "type": "RESEARCH",
+    "id": 1638215613,
+    "title": "PeerReviewedStudy",
+    "url": "www.gov.org",
     "status": "PENDING",
     "viewCount": 0,
     "flagCount": 0,

@@ -13,6 +13,7 @@ import com.spikeaware.db.DatabaseManager;
 import com.spikeaware.team.TeamManager;
 import com.spikeaware.team.TeamMember;
 import com.spikeaware.team.UserRole;
+import com.spikeaware.ui.Menu;
 import com.spikeaware.service.AuthenticationService;
 import com.spikeaware.service.ResourceService;
 import com.spikeaware.service.TeamService;
@@ -32,6 +33,9 @@ public class Main {
     private static ResourceService resourceService;
     private static TeamService teamService;
     private static Scanner scanner;
+    private static Menu mainMenu;
+    private static boolean running; 
+    private static UserRole userRole;  
 
     public static void main(String[] args) {
         // Initialize services
@@ -41,183 +45,137 @@ public class Main {
         resourceService = new ResourceService(dataManger, authService);
         teamService = new TeamService(teamManager, authService);
         scanner = new Scanner(System.in);
-        
-        boolean running = true;
+        mainMenu = new Menu(scanner);
+        running = true;
 
+        start();
+    }
+
+    /**
+     * The main entry point for the application loop.
+     */
+    public static void start() {
         System.out.println("/-------------------------------------------------------\\");
         System.out.println("|   Welcome to Spike Aware UK - Resource Aggregator     |");
         System.out.println("\\-------------------------------------------------------/");
 
         try {
             while (running) {
-                printMenu();
-                String input = scanner.nextLine().trim();
-                running = handleUserInput(input);
-                System.out.print("\nPress Enter to continue...");
-                scanner.nextLine(); // Pause before showing menu again
+                showMainMenu();
             }
 
-            System.out.println("\nThank you for using Spike Aware UK. GoodataMangerye!");
+            System.out.println("\nThank you for using Spike Aware UK. Goodbye!");
         } finally {
             scanner.close();
         }
     }
 
     /**
-     * Prints the main menu with options based on user's current role.
+     * Displays the main menu and handles user input to navigate through the application.
+     * The menu options change dynamically based on the user's role (public, moderator, administrator).
+     * This method serves as the central hub for user interaction, allowing access to all features of the application.
+     * It also demonstrates how role-based access control is implemented, with different options available for different user roles.
+     * The menu is displayed in a loop until the user chooses to exit, allowing for continuous interaction without restarting the application.
      */
-    private static void printMenu() {
+    private static void showMainMenu() {    
+        userRole = authService.getCurrentRole();
+        mainMenu.clearOptions(); // Clear previous options to avoid duplicates when role changes
+
         System.out.println("\n/-------------------------------------------------------\\");
-        System.out.println("|              Current Role: " + String.format("%-23s", authService.getCurrentRole().getDisplayName()) + "    |");
+        System.out.println("|              Current Role: " + String.format("%-23s", userRole.getDisplayName()) + "    |");
         System.out.println("\\-------------------------------------------------------/");
-        System.out.println("0. Exit");
         
-        if (authService.isPublicMode()) {
-            System.out.println("1. View All Published Resources");
-        } else {
-            System.out.println("1. View All Resources");
-        }
-        System.out.println("2. Search Resources");
-        System.out.println("3. View Resource by ID");
-        System.out.println("4. Add Research Resource");
-        System.out.println("5. Add Public Resource");
-        System.out.println("6. Flag a Resource");
-
-        if (authService.isPublicMode()) {
-            System.out.println("7. Login as Moderator/Administrator");
-        } else {
-            // Moderator and Administrator options
-            System.out.println("7. Logout");
-            System.out.println("8. Moderate (Review Pending Resources)");
-            System.out.println("9. View Flagged Resources");
-            System.out.println("10. View System Analytics");
-            System.out.println("11. Edit Resource");
-            System.out.println("12. Archive Resource");           
-            
-            if (authService.isAdministratorMode()) {
-                System.out.println("13. Remove Resource");
-                System.out.println("14. Manage Team");
-            }
-        }
-
-        System.out.print("\nSelect an option: ");
-    }
-
-    /**
-     * Handles user input and routes to appropriate methods.
-     *
-     * @param input the user's menu selection
-     * @return false if user chose to exit, true otherwise
-     */
-    private static boolean handleUserInput(String input) {
-        if (authService.isPublicMode()) {
-            return handlePublicUserInput(input);
-        } else {
-            return handleModeratorInput(input);
-        }
-    }
-
-    /**
-     * Handles input for public users.
-     *
-     * @param input the user's menu selection
-     * @return false if user chose to exit, true otherwise
-     */
-    private static boolean handlePublicUserInput(String input) {
-        switch (input) {
-            case "0":
-                return false;
-            case "1":
+        mainMenu.addOption("Exit", () -> running = false);
+        mainMenu.addOption(authService.isPublicMode() ? "View Published Resources" : "View All Resources", () -> {
+            if (authService.isPublicMode()) {
                 viewAllPublishedResources();
-                break;
-            case "2":
-                searchResources();
-                break;
-            case "3":
-                viewResourceById();
-                break;
-            case "4":
-                addResearchResource();
-                break;
-            case "5":
-                addPublicResource();
-                break;
-            case "6":
-                flagResource();
-                break;
-            case "7":
-                login();
-                break;
-            default:
-                System.out.println("Invalid option. Please try again.");
+            } else {
+                viewAllResources();
+            }
+        });
+        mainMenu.addOption("Search Resources", () -> searchResources());
+        mainMenu.addOption("View by ID", () -> viewResourceById());
+        mainMenu.addOption("Submit a Public Resource", () -> addPublicResource());
+        mainMenu.addOption("Submit a Research Resource", () -> addResearchResource());
+        mainMenu.addOption("Flag Resource", () -> flagResource());
+        if (!authService.isPublicMode()) {
+            showModeratorMenu();              
+        } else {       
+            mainMenu.addOption("Staff Login", () -> showStaffLogin());
+            mainMenu.displayAndRun();
         }
-        return true;
     }
 
     /**
-     * Handles input for moderators and administrators.
-     *
-     * @param input the user's menu selection
-     * @return false if user chose to exit, true otherwise
+     * Authenticates a user as a moderator or administrator.
+     * Lacking a GUI, this replaces the proposed modal.
+     * The authentication process is simplified for this CLI application, using hardcoded passwords for demonstration purposes.
+     * In a real application, this would involve secure password handling and user management.
+     * The AuthenticationService class handles the logic for verifying credentials and managing user roles.
+     * After successful login, the menu options will change to reflect the user's new role (moderator or administrator).
+     * If login fails, the user remains in public mode with limited access to features.
+     * This method also demonstrates how role-based access control is implemented in the application, allowing for different functionalities based on user roles.
+     * The login credentials are as follows:
+     * - Moderator: mod123
+     * - Administrator: admin123
      */
-    private static boolean handleModeratorInput(String input) {
-        switch (input) {
-            case "0":
-                return false;
-            case "1":
-                viewAllResources();
-                break;
-            case "2":
-                searchResources();
-                break;
-            case "3":
-                viewResourceById();
-                break;
-            case "4":
-                addResearchResource();
-                break;
-            case "5":
-                addPublicResource();
-                break;
-            case "6":
-                flagResource();
-                break;
-            case "7":
-                logout();
-                break;
-            case "8":
-                moderateResources();
-                break;
-            case "9":
-                viewFlaggedResources();
-                break;
-            case "10":
-                viewSystemAnalytics();
-                break;
-            case "11":
-                editResource();
-                break;
-            case "12":
-                archiveResource();
-                break;
-            case "13":
-                if (authService.isAdministratorMode()) {
-                    removeResource(); 
-                } else {
-                    System.out.println("Invalid option. Please try again.");
-                }                               
-                break;
-            case "14":
-                if (authService.isAdministratorMode()) {
-                    manageTeam();
-                } else {
-                    System.out.println("Invalid option. Please try again.");
-                }
-                break;           
-            default:
-                System.out.println("Invalid option. Please try again.");
+    private static void showStaffLogin() {
+        System.out.print("\nEnter password (mod123 for Moderator, admin123 for Administrator): ");
+        String password = scanner.nextLine().trim();
+
+        try {
+            UserRole role = authService.authenticate(password);
+            if (role != null) {
+                System.out.println("Login successful! You are now in " + role.getDisplayName() + " mode.");
+            } else {
+                System.out.println("Invalid password. Login failed.");
+            }
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
         }
-        return true;
+    }
+
+    /**
+     * Displays the moderator menu.
+     */
+    private static void showModeratorMenu() {
+
+        mainMenu.addOption("Logout", () -> logout());
+        mainMenu.addOption("Moderate (Review Pending Resources)", () -> moderateResources());
+        mainMenu.addOption("View Flagged Resources", () -> viewFlaggedResources());
+        mainMenu.addOption("View System Analytics", () -> viewSystemAnalytics());
+        mainMenu.addOption("Edit Resource", () -> editResource());
+        mainMenu.addOption("Archive Resource", () -> archiveResource());
+        if (userRole == UserRole.ADMINISTRATOR) {
+            showAdminMenu();
+        } else {
+            mainMenu.displayAndRun();
+        }
+    }
+
+    /**
+     * Team management for administrators.
+     */
+    private static void manageTeam() {
+        Menu teamMenu = new Menu(scanner);
+        teamMenu.addOption("\nView Team Members", () -> viewAllTeamMembers());
+        teamMenu.addOption("Add Member", () -> addTeamMember());
+        teamMenu.addOption("Remove Member", () -> removeTeamMember());
+        teamMenu.addOption("Edit Team Member", () -> editTeamMember());
+        teamMenu.addOption("Activate/Deactivate Team Member", () -> toggleTeamMemberActiveStatus());
+
+        teamMenu.displayAndRun();
+    }
+
+    /**
+     * Displays the administrator menu.
+     */
+    private static void showAdminMenu() {
+
+        mainMenu.addOption("Remove Resource", () -> removeResource());
+        mainMenu.addOption("Manage Team Members", () -> manageTeam());
+
+        mainMenu.displayAndRun();
     }
 
     /**
@@ -296,13 +254,17 @@ public class Main {
             return;
         }
 
-        var resource = resourceService.getResource(id); // This will also increment the view count
-        if (resource.isEmpty()) {
-            System.out.println("Resource not found or not accessible.");
-            return;
-        }
+        try {
+            var resource = resourceService.getResource(id); // This will also increment the view count
+            if (resource.isEmpty()) {
+                System.out.println("Resource not found or not accessible.");
+                return;
+            }
 
-        resource.get().display();
+            resource.get().display();
+        } catch (SecurityException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
     }
 
     /**
@@ -381,31 +343,6 @@ public class Main {
     }
 
     /**
-     * Authenticates a user as a moderator or administrator.
-     * Lacking a GUI, this replaces the proposed modal.
-     * The authentication process is simplified for this CLI application, using hardcoded passwords for demonstration purposes.
-     * In a real application, this would involve secure password handling and user management.
-     * The AuthenticationService class handles the logic for verifying credentials and managing user roles.
-     * After successful login, the menu options will change to reflect the user's new role (moderator or administrator).
-     * If login fails, the user remains in public mode with limited access to features.
-     * This method also demonstrates how role-based access control is implemented in the application, allowing for different functionalities based on user roles.
-     * The login credentials are as follows:
-     * - Moderator: mod123
-     * - Administrator: admin123
-     */
-    private static void login() {
-        System.out.print("\nEnter password (mod123 for Moderator, admin123 for Administrator): ");
-        String password = scanner.nextLine().trim();
-
-        UserRole role = authService.authenticate(password);
-        if (role != null) {
-            System.out.println("Login successful! You are now in " + role.getDisplayName() + " mode.");
-        } else {
-            System.out.println("Invalid password. Login failed.");
-        }
-    }
-
-    /**
      * Logs out a moderator or administrator and returns to public user mode.
      */
     private static void logout() {
@@ -440,25 +377,21 @@ public class Main {
             for (Resource resource : pendingResources) {
                 resource.display();
 
-                System.out.println("Action: (a) Approve | (r) Reject | (s) Skip");
-                System.out.print("Your decision: ");
-                String decision = scanner.nextLine().trim().toLowerCase();
-
-                switch (decision) {
-                    case "a":
-                        resourceService.approveResource(resource.getId());
-                        System.out.println("Resource approved and published.\n");
-                        break;
-                    case "r":
-                        resourceService.rejectResource(resource.getId());
-                        System.out.println("Resource rejected.\n");
-                        break;
-                    case "s":
-                        System.out.println("Skipped.\n");
-                        break;
-                    default:
-                        System.out.println("Invalid input. Skipping...\n");
-                }
+                Menu decisionMenu = new Menu(scanner);
+                decisionMenu.addOption("Approve", () -> {
+                    resourceService.approveResource(resource.getId());
+                    System.out.println("Resource approved and published.\n");
+                });
+                decisionMenu.addOption("Reject", () -> {
+                    resourceService.rejectResource(resource.getId());
+                    System.out.println("Resource rejected.\n");
+                });
+                decisionMenu.addOption("Skip", () -> {
+                    System.out.println("Skipped.\n");
+                });
+                
+                System.out.println("Action:");
+                decisionMenu.displayAndRun();
             }
 
             System.out.println("Moderation session complete.");
@@ -553,26 +486,26 @@ public class Main {
             return;
         }
 
-        var resource = resourceService.getResource(id);
-        if (resource.isEmpty()) {
-            System.out.println("Resource not found.");
-            return;
-        }
+        try {
+            var resource = resourceService.getResource(id);
+            if (resource.isEmpty()) {
+                System.out.println("Resource not found.");
+                return;
+            }
 
-        resource.get().display();
+            resource.get().display();
 
-        System.out.print("\nAre you sure you want to remove this resource? (yes/no): ");
-        String confirmation = scanner.nextLine().trim().toLowerCase();
+            System.out.print("\nAre you sure you want to remove this resource? (yes/no): ");
+            String confirmation = scanner.nextLine().trim().toLowerCase();
 
-        if ("yes".equals(confirmation)) {
-            try {
+            if ("yes".equals(confirmation)) {
                 resourceService.removeResource(id);
                 System.out.println("Resource removed successfully.");
-            } catch (SecurityException e) {
-                System.out.println("Error: " + e.getMessage());
+            } else {
+                System.out.println("Removal cancelled.");
             }
-        } else {
-            System.out.println("Removal cancelled.");
+        } catch (SecurityException e) {
+            System.out.println("Error: " + e.getMessage());
         }
     }
 
@@ -588,84 +521,38 @@ public class Main {
             return;
         }
 
-        var resource = resourceService.getResource(id);
-        if (resource.isEmpty()) {
-            System.out.println("Resource not found.");
-            return;
-        }
+        try {
+            var resource = resourceService.getResource(id);
+            if (resource.isEmpty()) {
+                System.out.println("Resource not found.");
+                return;
+            }
 
-        Resource r = resource.get();
-        
-        if (ResourceStatus.ARCHIVED.equals(r.getStatus())) {
+            Resource r = resource.get();
+            
+            if (ResourceStatus.ARCHIVED.equals(r.getStatus())) {
+                r.display();
+                System.out.print("Resource is already archived. Unarchive? (y/N): ");
+                String confirmation = scanner.nextLine().trim().toLowerCase();
+
+                if ("y".equals(confirmation)) {
+                    resourceService.unarchiveResource(id);
+                    System.out.println("Resource unarchived successfully.");
+                } else {
+                    System.out.println("Unarchive cancelled.");
+                }
+                return;
+            }
+
             r.display();
-            System.out.print("Resource is already archived. Unarchive? (y/N): ");
+            System.out.print("\nArchive this resource? (y/N): ");
             String confirmation = scanner.nextLine().trim().toLowerCase();
 
             if ("y".equals(confirmation)) {
-                try {
-                    resourceService.unarchiveResource(id);
-                    System.out.println("Resource unarchived successfully.");
-                } catch (SecurityException e) {
-                    System.out.println("Error: " + e.getMessage());
-                }
-            } else {
-                System.out.println("Unarchive cancelled.");
-            }
-            return;
-        }
-
-        r.display();
-        System.out.print("\nArchive this resource? (y/N): ");
-        String confirmation = scanner.nextLine().trim().toLowerCase();
-
-        if ("y".equals(confirmation)) {
-            try {
                 resourceService.archiveResource(id);
                 System.out.println("Resource archived successfully.");
-            } catch (SecurityException e) {
-                System.out.println("Error: " + e.getMessage());
-            }
-        } else {
-            System.out.println("Archive cancelled.");
-        }
-    }
-
-    /**
-     * Team management for administrators.
-     */
-    private static void manageTeam() {
-        try {
-            System.out.println("\nTeam Management");
-            System.out.println("0. Back to Admin Menu");
-            System.out.println("1. View Team Members");
-            System.out.println("2. Add Member");
-            System.out.println("3. Remove Member");
-            System.out.println("4. Edit Team Member");
-            System.out.println("5. Activate/Deactivate Team Member");
-            System.out.print("\nSelect an option: ");
-            
-            String choice = scanner.nextLine().trim();
-            switch (choice) {
-                case "1":
-                    viewAllTeamMembers();
-                    break;
-                case "2":
-                    addTeamMember();
-                    break;
-                case "3":
-                    removeTeamMember();
-                    break;
-                case "4":
-                    editTeamMember();
-                    break;
-                case "5":
-                    toggleTeamMemberActiveStatus();
-                    break;
-                case "0":
-                    System.out.print("Press Enter to continue...");
-                    break;
-                default:
-                    System.out.println("Invalid option.");
+            } else {
+                System.out.println("Archive cancelled.");
             }
         } catch (SecurityException e) {
             System.out.println("Error: " + e.getMessage());

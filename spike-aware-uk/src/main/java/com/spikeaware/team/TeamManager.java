@@ -95,7 +95,7 @@ public class TeamManager {
      */
     public Optional<TeamMember> getTeamMemberById(long id) {
         return teamMembers.stream()
-                .filter(r -> r.getId() == id)
+                .filter(t -> t.getId() == id)
                 .findFirst();
     }
 
@@ -109,12 +109,12 @@ public class TeamManager {
      */
     public void editTeamMember(long id, String name, String email, UserRole role) {
         teamMembers.stream()
-                .filter(m -> m.getId() == id)
+                .filter(t -> t.getId() == id)
                 .findFirst()
-                .ifPresent(m -> {
-                    m.setName(name);
-                    m.setEmail(email);
-                    m.setRole(role);
+                .ifPresent(t -> {
+                    t.setName(name);
+                    t.setEmail(email);
+                    t.setRole(role);
                     saveToFile();
                 });
     }
@@ -125,7 +125,7 @@ public class TeamManager {
      * @param id the team member ID to remove
      */
     public void removeTeamMember(long id) {
-        teamMembers.removeIf(m -> m.getId() == id);
+        teamMembers.removeIf(t -> t.getId() == id);
         saveToFile();
     }
 
@@ -136,10 +136,10 @@ public class TeamManager {
      */
     public void archiveTeamMember(long id) {
         teamMembers.stream()
-                .filter(r -> r.getId() == id)
+                .filter(t -> t.getId() == id)
                 .findFirst()
-                .ifPresent(r -> {
-                    r.setActive(r.isActive() ? false : true); // Toggle active status
+                .ifPresent(t -> {
+                    t.setActive(t.isActive() ? false : true); // Toggle active status
                     saveToFile();
                 });
     }

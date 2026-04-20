@@ -32,7 +32,7 @@ A console-based Java application for collecting, managing, and distributing educ
 
 - **Resource Model**: Abstract base class with polymorphic subclasses
 - **Data Persistence**: JSON-based storage using Gson with polymorphic deserialization
-- **CLI Interface**: Interactive console-based user interface
+- **CLI Interface**: Interactive console-based user interface using custom menus based on feedback
 - **Role-Based Access**: Public user, moderator, and administrator modes with hardcoded authentication
 - **Team Management**: Administrator-controlled team member management
 
@@ -41,7 +41,8 @@ A console-based Java application for collecting, managing, and distributing educ
 ```
 spike-aware-uk/
 ├── pom.xml
-├── README.md
+├── docs/
+│   └── README.md
 ├── data/
 │   ├── data.json
 │   └── team_data.json
@@ -49,17 +50,25 @@ spike-aware-uk/
     └── main/
         └── java/com/spikeaware/
             ├── Main.java
+            ├── config/
+            │   └── ConfigurationManager.java
             ├── db/
             │   └── DatabaseManager.java
             ├── model/
             │   ├── Resource.java (abstract)
             │   ├── ResearchResource.java
             │   ├── PublicResource.java
-            │   ├── ResourceStatus.java
+            │   └── ResourceStatus.java
+            ├── service/
+            │   ├── AuthenticationService.java
+            │   ├── ResourceService.java
+            │   └── TeamService.java
+            ├── team/
+            │   ├── TeamManager.java
             │   ├── TeamMember.java
             │   └── UserRole.java
-            └── team/
-                └── TeamManager.java
+            └── ui/
+                └── Menu.java
 ```
 
 ## Building the Project
@@ -103,7 +112,7 @@ spike-aware-uk/
 
 ## Data Persistence
 
-All resource data is stored in `data/data.json` in the application's working directory. Team member data is stored in `data/team_data.json`. Files are automatically created and updated whenever data is modified.
+All resource data is stored in `data/data.json` in the application's working directory. Team member data is stored in `data/team_data.json`. Files are automatically created and updated whenever data is modified. Directories are system agnostic and can be modified via the `ConfigurationManager.java` file.
 
 ### Supported Resource Statuses
 
