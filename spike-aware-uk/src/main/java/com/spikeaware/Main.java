@@ -48,13 +48,6 @@ public class Main {
         mainMenu = new Menu(scanner);
         running = true;
 
-        start();
-    }
-
-    /**
-     * The main entry point for the application loop.
-     */
-    public static void start() {
         System.out.println("/-------------------------------------------------------\\");
         System.out.println("|   Welcome to Spike Aware UK - Resource Aggregator     |");
         System.out.println("\\-------------------------------------------------------/");
@@ -146,7 +139,7 @@ public class Main {
         mainMenu.addOption("View System Analytics", () -> viewSystemAnalytics());
         mainMenu.addOption("Edit Resource", () -> editResource());
         mainMenu.addOption("Archive Resource", () -> archiveResource());
-        if (userRole == UserRole.ADMINISTRATOR) {
+        if (authService.isAdministratorMode()) {
             showAdminMenu();
         } else {
             mainMenu.displayAndRun();
