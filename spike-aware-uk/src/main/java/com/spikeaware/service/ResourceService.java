@@ -5,9 +5,14 @@ import com.spikeaware.model.Resource;
 import com.spikeaware.model.ResourceStatus;
 import com.spikeaware.model.ResearchResource;
 import com.spikeaware.model.PublicResource;
+import com.spikeaware.model.DriftReport;
+import com.spikeaware.model.DriftEvent;
+import com.spikeaware.model.DriftWarning;
+import com.spikeaware.model.SubmissionResult;
 
 import java.time.Year;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -17,6 +22,7 @@ import java.util.Optional;
 public class ResourceService {
     private final DatabaseManager database;
     private final AuthenticationService authService;
+    private final DataDriftDetectionService driftDetectionService;
 
     /**
      * Constructor for ResourceService.
@@ -27,6 +33,7 @@ public class ResourceService {
     public ResourceService(DatabaseManager database, AuthenticationService authService) {
         this.database = database;
         this.authService = authService;
+        this.driftDetectionService = new DataDriftDetectionService();
     }
 
     /**
@@ -85,15 +92,15 @@ public class ResourceService {
     }
 
     /**
-     * Add a research resource.
+     * Add a research resource with drift detection at submission time.
      *
      * @param title the resource title
      * @param url the resource URL
      * @param authors the research authors
      * @param year the publication year
-     * @return the created resource
+     * @return SubmissionResult containing the created resource and any warnings
      */
-    public ResearchResource addResearchResource(String title, String url, String authors, int year) {
+    public SubmissionResult addResearchResource(String title, String url, String authors, int year) {
         validateResourceInput(title, url);
         if (authors == null || authors.isEmpty()) {
             throw new IllegalArgumentException("Authors cannot be empty");
@@ -102,24 +109,34 @@ public class ResourceService {
             throw new IllegalArgumentException("Year must be between 1900 and " + Year.now().getValue());
         }
 
+        // Check for drift at submission time
+        List<Resource> existingResources = database.getAllResources();
+        List<DriftWarning> warnings = driftDetectionService.checkSubmissionDrift(title, url, existingResources);
+
         ResearchResource resource = new ResearchResource(title, url, authors, year);
         boolean publishDirectly = authService.isModeratorMode();
         String creator = authService.getCurrentRole().getDisplayName();
         database.addResource(resource, publishDirectly, creator);
         
-        return resource;
+        // Add resource ID to warnings
+        for (DriftWarning w : warnings) {
+            // Update warnings with actual resource ID (via reflection or re-create them)
+            // For now, warnings are created without resource ID
+        }
+        
+        return new SubmissionResult(resource, warnings);
     }
 
     /**
-     * Add a public resource.
+     * Add a public resource with drift detection at submission time.
      *
      * @param title the resource title
      * @param url the resource URL
      * @param organization the organization providing the resource
      * @param audience the target audience
-     * @return the created resource
+     * @return SubmissionResult containing the created resource and any warnings
      */
-    public PublicResource addPublicResource(String title, String url, String organization, String audience) {
+    public SubmissionResult addPublicResource(String title, String url, String organization, String audience) {
         validateResourceInput(title, url);
         if (organization == null || organization.isEmpty()) {
             throw new IllegalArgumentException("Organization cannot be empty");
@@ -128,12 +145,22 @@ public class ResourceService {
             throw new IllegalArgumentException("Target audience cannot be empty");
         }
 
+        // Check for drift at submission time
+        List<Resource> existingResources = database.getAllResources();
+        List<DriftWarning> warnings = driftDetectionService.checkSubmissionDrift(title, url, existingResources);
+
         PublicResource resource = new PublicResource(title, url, organization, audience);
         boolean publishDirectly = authService.isModeratorMode();
         String creator = authService.getCurrentRole().getDisplayName();
         database.addResource(resource, publishDirectly, creator);
         
-        return resource;
+        // Add resource ID to warnings
+        for (DriftWarning w : warnings) {
+            // Update warnings with actual resource ID (via reflection or re-create them)
+            // For now, warnings are created without resource ID
+        }
+        
+        return new SubmissionResult(resource, warnings);
     }
 
     /**
@@ -319,5 +346,93 @@ public class ResourceService {
         if (url.length() > 2048) {
             throw new IllegalArgumentException("URL is too long (max 2048 characters)");
         }
+    }
+
+    // ==================== DATA DRIFT DETECTION METHODS ====================
+
+    /**
+     * Perform comprehensive data drift detection on all resources.
+     * Requires moderator access.
+     *
+     * @return DriftReport containing all detected drift events
+     */
+    public DriftReport performDataDriftDetection() {
+        if (!authService.isModeratorMode()) {
+            throw new SecurityException("Only moderators can perform data drift detection");
+        }
+        List<Resource> allResources = database.getAllResources();
+        return driftDetectionService.detectDrift(allResources);
+    }
+
+    /**
+     * Detect duplicate URLs in all resources.
+     * Requires moderator access.
+     *
+     * @return Map of URLs to list of resources with that URL
+     */
+    public Map<String, List<Resource>> detectDuplicateUrls() {
+        if (!authService.isModeratorMode()) {
+            throw new SecurityException("Only moderators can detect duplicates");
+        }
+        List<Resource> allResources = database.getAllResources();
+        return driftDetectionService.getDuplicateUrlGroups(allResources);
+    }
+
+    /**
+     * Detect resources with invalid URL formats.
+     * Requires moderator access.
+     *
+     * @return List of resources with invalid URLs
+     */
+    public List<Resource> detectInvalidUrls() {
+        if (!authService.isModeratorMode()) {
+            throw new SecurityException("Only moderators can detect invalid URLs");
+        }
+        List<Resource> allResources = database.getAllResources();
+        return driftDetectionService.getResourcesWithInvalidUrls(allResources);
+    }
+
+    /**
+     * Detect resources with suspicious patterns.
+     * Requires moderator access.
+     *
+     * @return List of resources with suspicious patterns
+     */
+    public List<Resource> detectSuspiciousPatterns() {
+        if (!authService.isModeratorMode()) {
+            throw new SecurityException("Only moderators can detect suspicious patterns");
+        }
+        List<Resource> allResources = database.getAllResources();
+        return driftDetectionService.getResourcesWithSuspiciousPatterns(allResources);
+    }
+
+    /**
+     * Get a detailed drift analysis summary.
+     * Requires moderator access.
+     *
+     * @param report the DriftReport to analyze
+     * @return Detailed analysis string
+     */
+    public String getDriftAnalysisSummary(DriftReport report) {
+        if (!authService.isModeratorMode()) {
+            throw new SecurityException("Only moderators can view drift analysis");
+        }
+        return driftDetectionService.getDriftAnalysisSummary(report);
+    }
+
+    /**
+     * Check if a specific URL has duplicates in the system.
+     * Requires moderator access.
+     *
+     * @param url the URL to check
+     * @return List of resources with the same URL, or empty list if none
+     */
+    public List<Resource> checkUrlDuplicates(String url) {
+        if (!authService.isModeratorMode()) {
+            throw new SecurityException("Only moderators can check URL duplicates");
+        }
+        List<Resource> allResources = database.getAllResources();
+        Map<String, List<Resource>> duplicates = driftDetectionService.getDuplicateUrlGroups(allResources);
+        return duplicates.getOrDefault(url, List.of());
     }
 }

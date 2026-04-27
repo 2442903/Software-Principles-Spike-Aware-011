@@ -20,6 +20,7 @@ import com.spikeaware.service.TeamService;
 import com.spikeaware.model.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 /**
@@ -129,6 +130,14 @@ public class Main {
     }
 
     /**
+     * Logs out a moderator or administrator and returns to public user mode.
+     */
+    private static void logout() {
+        authService.logout();
+        System.out.println("You have been logged out. Returning to Public User mode.");
+    }
+
+    /**
      * Displays the moderator menu.
      */
     private static void showModeratorMenu() {
@@ -139,6 +148,7 @@ public class Main {
         mainMenu.addOption("View System Analytics", () -> viewSystemAnalytics());
         mainMenu.addOption("Edit Resource", () -> editResource());
         mainMenu.addOption("Archive Resource", () -> archiveResource());
+        mainMenu.addOption("Data Drift Detection", () -> showDataDriftMenu());
         if (authService.isAdministratorMode()) {
             showAdminMenu();
         } else {
@@ -278,9 +288,14 @@ public class Main {
         int year = (int) parseLongInput();
 
         try {
-            ResearchResource resource = resourceService.addResearchResource(title, url, authors, year);
+            SubmissionResult result = resourceService.addResearchResource(title, url, authors, year);
             String status = authService.isModeratorMode() ? ResourceStatus.APPROVED.getDisplayName() : ResourceStatus.PENDING.getDisplayName();
-            System.out.println("Research resource added successfully! (ID: " + resource.getId() + ", Status: " + status + ")");
+            System.out.println("Research resource added successfully! (ID: " + result.getResource().getId() + ", Status: " + status + ")");
+            
+            // Display drift warnings if any
+            if (result.hasWarnings()) {
+                displaySubmissionWarnings(result);
+            }
         } catch (IllegalArgumentException e) {
             System.out.println("Error: " + e.getMessage());
         }
@@ -304,9 +319,14 @@ public class Main {
         String audience = scanner.nextLine().trim();
 
         try {
-            PublicResource resource = resourceService.addPublicResource(title, url, org, audience);
+            SubmissionResult result = resourceService.addPublicResource(title, url, org, audience);
             String status = authService.isModeratorMode() ? ResourceStatus.APPROVED.getDisplayName() : ResourceStatus.PENDING.getDisplayName();
-            System.out.println("Public resource added successfully! (ID: " + resource.getId() + ", Status: " + status + ")");
+            System.out.println("Public resource added successfully! (ID: " + result.getResource().getId() + ", Status: " + status + ")");
+            
+            // Display drift warnings if any
+            if (result.hasWarnings()) {
+                displaySubmissionWarnings(result);
+            }
         } catch (IllegalArgumentException e) {
             System.out.println("Error: " + e.getMessage());
         }
@@ -333,15 +353,7 @@ public class Main {
         } catch (IllegalArgumentException | SecurityException e) {
             System.out.println("Error: " + e.getMessage());
         }
-    }
-
-    /**
-     * Logs out a moderator or administrator and returns to public user mode.
-     */
-    private static void logout() {
-        authService.logout();
-        System.out.println("You have been logged out. Returning to Public User mode.");
-    }
+    }    
 
     /**
      * Moderator moderation workflow - review and approve/reject pending resources.
@@ -729,4 +741,165 @@ public class Main {
             return -1;
         }
     }
+
+    /**
+     * Displays the data drift detection submenu for moderators.
+     * Allows moderators to perform various drift detection operations on resources.
+     */
+    private static void showDataDriftMenu() {
+        Menu driftMenu = new Menu(scanner);
+        driftMenu.addOption("Back", () -> {});
+        driftMenu.addOption("Perform Full Drift Detection", () -> performFullDriftDetection());
+        driftMenu.addOption("Check for Duplicate URLs", () -> checkDuplicateUrls());
+        driftMenu.addOption("Check for Invalid URLs", () -> checkInvalidUrls());
+        driftMenu.addOption("Check for Suspicious Patterns", () -> checkSuspiciousPatterns());
+        driftMenu.addOption("Check URL Duplicates", () -> checkSpecificUrlDuplicates());
+
+        driftMenu.displayAndRun();
+    }
+
+    /**
+     * Performs comprehensive data drift detection on all resources.
+     */
+    private static void performFullDriftDetection() {
+        try {
+            System.out.println("\nPerforming comprehensive data drift detection...\n");
+            DriftReport report = resourceService.performDataDriftDetection();
+            
+            System.out.println(resourceService.getDriftAnalysisSummary(report));
+        } catch (SecurityException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Detects and displays duplicate URLs in the system.
+     */
+    private static void checkDuplicateUrls() {
+        try {
+            System.out.println("\nScanning for duplicate URLs...\n");
+            Map<String, List<Resource>> duplicates = resourceService.detectDuplicateUrls();
+
+            if (duplicates.isEmpty()) {
+                System.out.println("No duplicate URLs found. System is clean.");
+                return;
+            }
+
+            System.out.println("Found " + duplicates.size() + " duplicate URL(s):\n");
+            
+            for (Map.Entry<String, List<Resource>> entry : duplicates.entrySet()) {
+                System.out.println("URL: " + entry.getKey());
+                System.out.println("Appears in " + entry.getValue().size() + " resource(s):");
+                for (int i = 0; i < entry.getValue().size(); i++) {
+                    Resource r = entry.getValue().get(i);
+                    System.out.println("  " + (i + 1) + ". ID: " + r.getId() + " | Title: " + r.getTitle() + " | Status: " + r.getStatus());
+                }
+                System.out.println();
+            }
+        } catch (SecurityException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Detects and displays resources with invalid URL formats.
+     */
+    private static void checkInvalidUrls() {
+        try {
+            System.out.println("\nScanning for invalid URL formats...\n");
+            List<Resource> invalidUrls = resourceService.detectInvalidUrls();
+
+            if (invalidUrls.isEmpty()) {
+                System.out.println("No invalid URLs found. All URLs have valid format.");
+                return;
+            }
+
+            System.out.println("Found " + invalidUrls.size() + " resource(s) with invalid URL(s):\n");
+            
+            for (int i = 0; i < invalidUrls.size(); i++) {
+                Resource r = invalidUrls.get(i);
+                System.out.println((i + 1) + ". ID: " + r.getId() + " | Title: " + r.getTitle());
+                System.out.println("   URL: " + r.getUrl());
+                System.out.println("   Status: " + r.getStatus() + "\n");
+            }
+        } catch (SecurityException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Detects and displays resources with suspicious patterns in titles or URLs.
+     */
+    private static void checkSuspiciousPatterns() {
+        try {
+            System.out.println("\nScanning for suspicious patterns...\n");
+            List<Resource> suspicious = resourceService.detectSuspiciousPatterns();
+
+            if (suspicious.isEmpty()) {
+                System.out.println("No suspicious patterns detected. System appears clean.");
+                return;
+            }
+
+            System.out.println("Found " + suspicious.size() + " resource(s) with suspicious patterns:\n");
+            
+            for (int i = 0; i < suspicious.size(); i++) {
+                Resource r = suspicious.get(i);
+                System.out.println((i + 1) + ". ID: " + r.getId() + " | Title: " + r.getTitle());
+                System.out.println("   URL: " + r.getUrl());
+                System.out.println("   Status: " + r.getStatus());
+                System.out.println("   ⚠️ Review this resource for potential security issues.\n");
+            }
+        } catch (SecurityException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Allows moderators to check if a specific URL has duplicates.
+     */
+    private static void checkSpecificUrlDuplicates() {
+        System.out.print("\nEnter URL to check: ");
+        String url = scanner.nextLine().trim();
+
+        if (url.isEmpty()) {
+            System.out.println("URL cannot be empty.");
+            return;
+        }
+
+        try {
+            List<Resource> duplicates = resourceService.checkUrlDuplicates(url);
+
+            if (duplicates.isEmpty()) {
+                System.out.println("\nNo duplicates found for: " + url);
+                return;
+            }
+
+            System.out.println("\nFound " + duplicates.size() + " resource(s) with URL: " + url + "\n");
+            
+            for (int i = 0; i < duplicates.size(); i++) {
+                Resource r = duplicates.get(i);
+                System.out.println((i + 1) + ". ID: " + r.getId() + " | Title: " + r.getTitle() + " | Status: " + r.getStatus());
+            }
+        } catch (SecurityException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Display submission warnings (drift issues detected during resource creation).
+     * Shows warnings to the user but does NOT prevent submission.
+     */
+    private static void displaySubmissionWarnings(SubmissionResult result) {
+        System.out.println(result.formatForDisplay());
+        
+        List<DriftWarning> critical = result.getCriticalWarnings();
+        if (!critical.isEmpty()) {
+            System.out.println("\n⚠️  CRITICAL WARNINGS - PLEASE REVIEW:");
+            for (DriftWarning w : critical) {
+                System.out.println("  - " + w.getType() + ": " + w.getMessage());
+            }
+            System.out.println("\nNote: Resource was submitted despite warnings. Moderators will review.");
+        }
+    }
 }
+
